@@ -1,0 +1,8 @@
+streamlit
+PyMuPDF
+sentence-transformers
+faiss-cpu
+rank-bm25
+langchain-text-splitters
+ollama
+numpy

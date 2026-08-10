@@ -283,7 +283,7 @@ SIMILARITY_THRESHOLD = 0.30
 
 1. Clone the repository
 
-git clone https://github.com/YOUR_USERNAME/DocumentAssistant.git
+git clone https://github.com/prisha811/DocumentAssistant.git
 cd DocumentAssistant
 
 2. Create a virtual environment

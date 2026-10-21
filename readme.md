@@ -212,9 +212,6 @@ Do not add image links until the corresponding image files exist at those paths.
 
 ### 1. Clone the repository
 
-After creating the GitHub repository, replace the URL below with its clone URL:
-
-```bash
 git clone https://github.com/YOUR_USERNAME/DocumentAssistant.git
 cd DocumentAssistant
 ```
@@ -277,127 +274,123 @@ From the project root:
 uvicorn api:app --app-dir app --host 127.0.0.1 --port 8000
 ```
 
-Open `http://localhost:8000/docs` to explore and test the endpoints.
+Why is hybrid retrieval useful?
 
-### 7. Run the Streamlit prototype (optional)
+Compare BM25 and dense retrieval.
 
-The Streamlit UI currently invokes the RAG pipeline directly rather than calling FastAPI. Run it in a separate terminal after installing dependencies:
+Why is reranking required?
 
-```bash
-streamlit run app/ui.py
-```
+What are the limitations discussed in the document?
 
-This prototype may require the same local model and environment configuration as the RAG pipeline.
+The quality of the answer depends on the uploaded document and the retrieved context.
 
-## Run with Docker
+🎯 Why Hybrid Retrieval?
 
-Build the image:
+A major design choice in this project is combining semantic and lexical retrieval.
 
-```bash
-docker build -t documentassistant .
-```
+Dense retrieval
 
-Ensure a local `.env` file exists with the required API key, then start the application:
+FAISS uses embeddings to find passages that are semantically similar to the query.
 
-```bash
-docker compose up --build -d
-```
+Lexical retrieval
 
-Useful commands:
+BM25 focuses on term-level matching.
 
-```bash
-docker compose ps
-docker compose logs -f documentassistant
-docker compose down
-```
+Combined approach
 
-The Compose configuration uses `host.docker.internal` to connect to Ollama running on the host in supported local Docker environments. The configured Ollama endpoint must be reachable from inside the container. For EC2, ensure the model service and its endpoint are configured for that environment.
+                 User Query
+                     │
+          ┌──────────┴──────────┐
+          ▼                     ▼
+       FAISS                  BM25
+   semantic search        lexical search
+          │                     │
+          └──────────┬──────────┘
+                     ▼
+                    RRF
+                     ▼
+              Cross-Encoder
+                     ▼
+              Best passages
 
-## Deployment on AWS EC2
+This gives the system complementary semantic and lexical retrieval signals.
 
-The Dockerized API has been deployed to AWS EC2 in the `eu-north-1` (Stockholm) region and smoke-tested through its public endpoint.
+⚡ Performance Considerations
 
-- **Container image:** `prishaaasingh/documentassistant:latest`
-- **Port:** `8000`
-- **Tested workflows:** health check, PDF upload, question answering, and source citations
-- **Secrets:** API keys are supplied through environment variables, not embedded in the image or source code.
+The generated FAISS index and chunk metadata are stored locally:
 
-The exact instance type and model-serving configuration should be confirmed from the current AWS setup before documenting them. Do not publish instance identifiers, public IP addresses, account IDs, or credentials in this README.
+data/faiss_index/
+    ├── index.faiss
+    └── chunks.pkl
 
-For a public deployment, restrict inbound access to the required ports and trusted sources. Stop or terminate resources when they are not needed, and check AWS billing and resource usage regularly.
+When the cached index exists, it can be loaded instead of regenerating the embeddings.
 
-## Evaluation
+When a new PDF is uploaded, the Streamlit interface clears the previous PDF/index and rebuilds the knowledge base for the new document.
 
-The project includes a custom evaluation workflow in `evaluation/` with 20 question-answer test cases.
+⚠️ Current Limitations
 
-Run the evaluation from the project root:
+The application is designed around one uploaded PDF at a time.
 
-```bash
-python evaluation/evaluate.py --pdf "data/raw_pdfs/RAG_Testing.pdf"
-```
+Retrieval quality depends on chunking and embedding quality.
 
-The test PDF is a local evaluation asset and should remain untracked unless you have confirmed that you have permission to publish it.
+Local LLM response speed depends on available CPU/GPU/RAM.
 
-### Results
+Scanned/image-only PDFs require OCR support, which is not currently implemented.
 
-The evaluation was run on October 22, 2026, using 20 question-answer test cases against `RAG_Testing.pdf`. The recorded run used the `gemma3:1b` Ollama model.
+Complex questions may still produce imperfect retrieval or generation.
 
-| Metric | Result |
-|---|---:|
-| Test cases | 20 |
-| Successful runs | 20/20 |
-| Failed runs | 0 |
-| Expected-page hit rate | 100% |
-| Mean retrieved-context answer lexical overlap | 60.94% |
-| Mean generated-answer lexical overlap | 35.99% |
-| Mean recorded latency | 10.74 seconds |
+The current system is a document QA application rather than a general-purpose chatbot.
 
-### How to interpret these results
+🔮 Future Improvements
 
-- **Expected-page hit rate** measures whether at least one manually specified expected page appeared among the returned source pages. It is a retrieval metric, not a measure of answer correctness.
-- **Lexical overlap** measures word overlap against reference answers. It is a diagnostic measure and does not establish semantic correctness or faithfulness.
-- **Mean latency** is the average time recorded per evaluation run in this test environment.
+Multi-document retrieval
 
-These results apply to the tested document, questions, model, and environment. The test set is small and custom-authored; the results do not establish general answer accuracy or production-level performance.
+Query rewriting and query expansion
 
-### Limitations observed
+Metadata-aware retrieval
 
-The current evaluation uses lexical diagnostics rather than a full semantic or faithfulness evaluation. Generated answers should be manually checked against their cited passages. Additional tests should cover reworded questions, multi-page answers, and questions whose answers are absent from the PDF.
+Improved chunking strategies
 
-## Security Considerations
+OCR for scanned PDFs
 
-- API keys are read from environment variables.
-- `.env` should remain excluded from Git.
-- PDFs and generated vector-store data should not be committed unless explicitly approved for publication.
-- Do not expose API keys in logs, screenshots, videos, or public repositories.
-- Restrict public access to API endpoints and use HTTPS and stronger authentication controls for production deployments.
-- Treat uploaded documents as potentially sensitive.
+Streaming LLM responses
 
-## Limitations
+Advanced citation highlighting
 
-- Answer quality depends on document quality, chunking, retrieval, and model behavior.
-- Inference speed depends on available compute resources and model configuration.
-- Scanned PDFs may require OCR if they contain no extractable text.
-- Retrieved context may omit information needed for complex or multi-hop questions.
-- Generated answers may be incomplete or incorrect and should be checked against source passages.
-- A healthy API response does not guarantee successful model inference.
-- The API currently maintains one active document in process memory; uploading another document replaces the active assistant for subsequent queries.
-- The project is a portfolio implementation and needs additional security, reliability, multi-user state management, and evaluation work before production use.
+Retrieval evaluation using Precision@k and Recall@k
 
-## Future Improvements
+Faithfulness/grounding evaluation
 
-- Connect the Streamlit prototype to the FastAPI endpoints.
-- Add persistent document and query metadata storage.
-- Implement user authentication and authorization.
-- Expand automated retrieval and answer-quality evaluation.
-- Improve document management and multi-document retrieval.
-- Add deployment automation and continuous integration.
-- Improve observability, error handling, and monitoring.
+Persistent document collections
 
-## Author
+Better multi-hop question handling
 
-**Prisha Singh**
-B.Tech, Computer Science and Engineering (Data Science), BPIT
+📌 RAG Concepts Demonstrated
 
-GitHub: https://github.com/prisha811
+PDF Processing
+      ↓
+Chunking
+      ↓
+Embeddings
+      ↓
+Vector Search
+      ↓
+Lexical Search
+      ↓
+Hybrid Retrieval
+      ↓
+RRF
+      ↓
+Reranking
+      ↓
+Context Construction
+      ↓
+LLM Generation
+      ↓
+Source Attribution
 
+👩‍💻 Author
+
+Prisha Singh
+
+B.Tech, Computer Science and Engineering (Data Science)

@@ -1,0 +1,171 @@
+[
+  {
+    "id": "Q01",
+    "question": "What are the main problems with large language models that retrieval-augmented generation aims to mitigate?",
+    "expected_answer": "Hallucination, knowledge-update issues, and lack of domain-specific expertise.",
+    "expected_pages": [
+      1,
+      2
+    ]
+  },
+  {
+    "id": "Q02",
+    "question": "What is supervised learning, and what is the difference between regression and classification?",
+    "expected_answer": "Supervised learning uses labeled input-target pairs (x, y). Regression predicts a continuous quantity, while classification predicts a discrete class.",
+    "expected_pages": [
+      2
+    ]
+  },
+  {
+    "id": "Q03",
+    "question": "Name common examples of unsupervised learning methods.",
+    "expected_answer": "Clustering, dimensionality reduction, density estimation, and representation learning are common unsupervised methods.",
+    "expected_pages": [
+      3
+    ]
+  },
+  {
+    "id": "Q04",
+    "question": "What aspects should be evaluated in a retrieval-augmented system?",
+    "expected_answer": "Evaluation should consider retrieval quality, evidence quality, generation quality, faithfulness, latency, and failure behavior.",
+    "expected_pages": [
+      4
+    ]
+  },
+  {
+    "id": "Q05",
+    "question": "What are the four types of retrieval fusion described in the document?",
+    "expected_answer": "Query-based fusion, logits-based fusion, latent fusion, and parametric fusion.",
+    "expected_pages": [
+      5
+    ]
+  },
+  {
+    "id": "Q06",
+    "question": "What are the three steps in building a vector retriever described in the document?",
+    "expected_answer": "Chunk the corpus, encode the chunks, and build the vector database, including the ANN index and stored key-value pairs.",
+    "expected_pages": [
+      6
+    ]
+  },
+  {
+    "id": "Q07",
+    "question": "What three factors influence the choice of chunk size?",
+    "expected_answer": "Task preference, encoder preference, and query preference influence chunk size.",
+    "expected_pages": [
+      7
+    ]
+  },
+  {
+    "id": "Q08",
+    "question": "What is the difference between sparse and dense encoding?",
+    "expected_answer": "Sparse encoding represents text with high-dimensional vectors containing mostly zeros, while dense embeddings represent semantic content in dense vectors.",
+    "expected_pages": [
+      8,
+      9
+    ]
+  },
+  {
+    "id": "Q09",
+    "question": "How does BM25 rank documents?",
+    "expected_answer": "BM25 is a probabilistic lexical-ranking algorithm that balances term frequency, inverse document frequency, and document-length normalization.",
+    "expected_pages": [
+      19
+    ]
+  },
+  {
+    "id": "Q10",
+    "question": "What is the purpose of text embeddings in semantic retrieval?",
+    "expected_answer": "Embeddings convert text into numerical vector representations so retrieval can compare semantic similarity rather than relying only on keyword matching.",
+    "expected_pages": [
+      16,
+      17
+    ]
+  },
+  {
+    "id": "Q11",
+    "question": "What is the role of a vector database in a RAG retriever?",
+    "expected_answer": "A vector database stores vector representations of external knowledge and supports efficient nearest-neighbor retrieval of relevant chunks.",
+    "expected_pages": [
+      4,
+      21
+    ]
+  },
+  {
+    "id": "Q12",
+    "question": "What does FAISS help a system do?",
+    "expected_answer": "FAISS provides indexing and similarity-search capabilities for efficient vector retrieval, including approximate nearest-neighbor search.",
+    "expected_pages": [
+      22
+    ]
+  },
+  {
+    "id": "Q13",
+    "question": "Why is metadata and source tracking important in RAG?",
+    "expected_answer": "Metadata preserves the origin of retrieved chunks, enabling source citations, traceability, auditing, and reproducible debugging.",
+    "expected_pages": [
+      24
+    ]
+  },
+  {
+    "id": "Q14",
+    "question": "What are the three major modules of a RAG system described in the document?",
+    "expected_answer": "The system consists of the retriever, the generator, and retrieval fusion mechanisms.",
+    "expected_pages": [
+      4,
+      25
+    ]
+  },
+  {
+    "id": "Q15",
+    "question": "What is hybrid retrieval?",
+    "expected_answer": "Hybrid retrieval combines lexical retrieval, such as BM25, with dense semantic retrieval to use complementary keyword and semantic signals.",
+    "expected_pages": [
+      28
+    ]
+  },
+  {
+    "id": "Q16",
+    "question": "What is Reciprocal Rank Fusion used for?",
+    "expected_answer": "Reciprocal Rank Fusion combines rankings from multiple retrieval systems using document ranks, rather than requiring raw scores to be directly comparable.",
+    "expected_pages": [
+      29
+    ]
+  },
+  {
+    "id": "Q17",
+    "question": "What does a cross-encoder reranker do in a RAG pipeline?",
+    "expected_answer": "A cross-encoder jointly evaluates a query and candidate passage to estimate relevance, then reranks candidates so the most relevant passages can be selected.",
+    "expected_pages": [
+      30,
+      31
+    ]
+  },
+  {
+    "id": "Q18",
+    "question": "What is the purpose of grounding a prompt in retrieved context?",
+    "expected_answer": "Prompt grounding instructs the generator to base its answer on retrieved evidence and avoid unsupported claims or hallucinations.",
+    "expected_pages": [
+      35,
+      36
+    ]
+  },
+  {
+    "id": "Q19",
+    "question": "What is the purpose of retrieval metrics in RAG evaluation?",
+    "expected_answer": "Retrieval metrics assess whether relevant documents are retrieved and how highly they are ranked, using precision- and recall-oriented measures.",
+    "expected_pages": [
+      38
+    ]
+  },
+  {
+    "id": "Q20",
+    "question": "What should a RAG system do when retrieved context does not contain enough information?",
+    "expected_answer": "It should abstain or clearly state that the answer cannot be determined from the available document context instead of inventing an answer.",
+    "expected_pages": [
+      1,
+      36,
+      49
+    ]
+  }
+]

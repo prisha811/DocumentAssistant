@@ -1,0 +1,23 @@
+services:
+  documentassistant:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: documentassistant
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      LLM_MODEL: gemma3:1b
+
+    volumes:
+      - ./app/data/raw_pdfs:/app/app/data/raw_pdfs
+      - ./app/data/faiss_index:/app/app/data/faiss_index
+
+    restart: unless-stopped

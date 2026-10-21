@@ -1,0 +1,37 @@
+# Python environments
+venv/
+eval_venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Secrets
+.env
+.env.*
+
+# Git
+.git/
+
+# Local PDFs and indexes
+data/raw_pdfs/
+data/faiss_index/
+app/data/raw_pdfs/
+app/data/faiss_index/
+
+# Evaluation results
+evaluation/results/
+
+# Temporary diagnostic scripts
+evaluation/debug_retrieval.py
+evaluation/inspect_retrieval.py
+evaluation/inspect_chunks.py
+evaluation/check_chunk_overlap.py
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

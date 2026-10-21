@@ -3,6 +3,16 @@ PyMuPDF
 sentence-transformers
 faiss-cpu
 rank-bm25
+langchain
+langchain-community
+langchain-classic
+langchain-core
 langchain-text-splitters
-ollama
+langchain-huggingface
+langchain-ollama
 numpy
+ollama
+fastapi
+uvicorn[standard]
+python-multipart
+langchain-groq

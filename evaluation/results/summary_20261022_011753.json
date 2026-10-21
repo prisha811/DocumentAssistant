@@ -1,0 +1,16 @@
+{
+  "pdf": "RAG_Testing.pdf",
+  "test_case_count": 20,
+  "successful_runs": 20,
+  "failed_runs": 0,
+  "expected_page_hit_rate": 1.0,
+  "mean_retrieved_context_answer_overlap": 0.6094,
+  "mean_generated_answer_lexical_overlap": 0.3599,
+  "mean_latency_seconds": 10.74,
+  "notes": [
+    "Custom diagnostic measures only; these are not Ragas metrics.",
+    "Lexical overlap is a rough diagnostic and does not establish semantic correctness or faithfulness.",
+    "expected_page_hit_rate checks whether any manually specified expected page was among the returned source pages.",
+    "Review generated answers and cited passages manually before claiming answer correctness."
+  ]
+}

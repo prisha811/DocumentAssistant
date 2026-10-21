@@ -1,450 +1,403 @@
-📄 DocumentAssistant
-
-A PDF question-answering application built using Retrieval-Augmented Generation (RAG).
-
-DocumentAssistant lets a user upload a PDF and ask questions about its contents through a Streamlit chat interface. Instead of sending the entire document directly to an LLM, the application retrieves relevant passages first and uses those passages as context for answer generation.
-
-✨ Features
-
-PDF upload through Streamlit
-
-PDF text extraction with PyMuPDF
-
-Overlapping text chunking
-
-Dense semantic retrieval with FAISS
-
-Lexical retrieval with BM25
-
-Hybrid retrieval using FAISS + BM25
-
-Reciprocal Rank Fusion (RRF)
-
-Cross-Encoder reranking
-
-Local LLM inference using Ollama
-
-Qwen 2.5 7B for answer generation
-
-Source page references for retrieved content
-
-Cached FAISS index
-
-Conversation interface with chat history
-
-🧠 RAG Pipeline
-
-                         PDF
-                          │
-                          ▼
-                 Text Extraction
-                   (PyMuPDF)
-                          │
-                          ▼
-                    Chunking
-                          │
-                          ▼
-                 Text Embeddings
-            all-MiniLM-L6-v2
-                          │
-                          ▼
-                    FAISS Index
-                          │
-                          │
-                    USER QUERY
-                          │
-             ┌────────────┴────────────┐
-             ▼                         ▼
-      Semantic Retrieval        Lexical Retrieval
-           (FAISS)                   (BM25)
-             │                         │
-             └────────────┬────────────┘
-                          ▼
-                Reciprocal Rank
-                  Fusion (RRF)
-                          │
-                          ▼
-                Cross-Encoder
-                  Reranking
-                          │
-                          ▼
-                 Top Relevant
-                     Chunks
-                          │
-                          ▼
-                Context + Query
-                          │
-                          ▼
-                 Qwen 2.5 7B
-                  via Ollama
-                          │
-                          ▼
-                 Answer + Sources
-
-🔍 How It Works
-
-1. PDF Processing
-
-The uploaded PDF is read page by page using PyMuPDF. Page numbers are preserved as metadata so the application can display the source pages used for an answer.
-
-2. Chunking
-
-The extracted document text is divided into smaller overlapping chunks.
-
-Current configuration:
-
-Chunk size: 500
-Chunk overlap: 100
-
-Chunking makes the document suitable for embedding and retrieval.
-
-3. Embeddings
-
-Each text chunk is converted into a dense vector representation using:
-
-sentence-transformers/all-MiniLM-L6-v2
-
-The embeddings are normalized before being stored in FAISS.
-
-4. FAISS Semantic Retrieval
-
-FAISS performs dense vector similarity search over the document chunks.
-
-The project uses:
-
-FAISS IndexFlatIP
-
-with normalized vectors.
-
-5. BM25 Lexical Retrieval
-
-The application also uses BM25 for keyword-based retrieval.
-
-BM25 is useful when exact terminology matters, while dense retrieval is useful for semantic similarity.
-
-FAISS → semantic similarity
-BM25  → lexical / keyword matching
-
-6. Reciprocal Rank Fusion
-
-The FAISS and BM25 results are combined using Reciprocal Rank Fusion (RRF).
-
-FAISS ranking ──┐
-                ├──→ RRF → unified ranking
-BM25 ranking ───┘
-
-RRF combines the ranked results without requiring the raw scores of the two retrievers to be directly comparable.
-
-7. Cross-Encoder Reranking
-
-The retrieved candidates are passed through:
-
-cross-encoder/ms-marco-MiniLM-L-6-v2
-
-The Cross-Encoder evaluates the question and candidate passage together and reranks the candidates according to query-passage relevance.
-
-8. Context Construction
-
-The highest-ranked chunks are assembled into a context containing their page numbers and text.
-
-The LLM receives:
-
-User Question
-+
-Retrieved Document Context
-
-rather than the entire PDF.
-
-9. Local LLM Generation
-
-The application uses:
-
-Qwen 2.5 7B
-
-through Ollama.
-
-The LLM is instructed to answer using the retrieved document context.
-
-10. Source References
-
-The application displays the page numbers associated with retrieved chunks, allowing users to trace the answer back to the source document.
-
-🛠️ Tech Stack
-
-Component
-
-Technology
-
-Language
-
-Python
-
-UI
-
-Streamlit
-
-PDF Processing
-
-PyMuPDF
-
-Text Chunking
-
-LangChain Text Splitters
-
-Embeddings
-
-sentence-transformers/all-MiniLM-L6-v2
-
-Vector Search
-
-FAISS
-
-Lexical Search
-
-BM25
-
-Retrieval Fusion
-
-Reciprocal Rank Fusion
-
-Reranking
-
-cross-encoder/ms-marco-MiniLM-L-6-v2
-
-LLM
-
-Qwen 2.5 7B
-
-Local Inference
-
-Ollama
-
-📁 Project Structure
-
+# DocumentAssistant
+
+A hybrid Retrieval-Augmented Generation (RAG) system for asking questions about PDF documents. It combines dense semantic retrieval, BM25 keyword search, hybrid retrieval, cross-encoder reranking, and an Ollama-served language model. Answers include source-page citations so users can inspect the retrieved evidence.
+
+**Demo recording:** https://drive.google.com/file/d/1SDwwv8QN2i2M4LrxhQEZVnw2HIb2PG2L/view?usp=sharing
+
+
+## Features
+
+- PDF upload and text extraction with PyMuPDF
+- Configurable text chunking with overlap
+- Dense semantic retrieval using FAISS
+- Keyword retrieval using BM25
+- Hybrid retrieval combining dense and lexical search
+- Cross-encoder reranking
+- Answer generation through Ollama
+- Source-page citations and retrieved passage details
+- FastAPI endpoints with Pydantic request and response validation
+- API-key authentication for upload and query endpoints
+- Docker and Docker Compose support
+- Custom evaluation script and 20-question test set
+- Deployed and smoke-tested on AWS EC2
+
+> **Frontend status:** `app/ui.py` is a Streamlit prototype that currently runs the RAG pipeline directly. It has not yet been connected to the FastAPI endpoints. The API can be used independently through Swagger UI, curl, or another client.
+
+## Architecture
+
+The diagram below shows document ingestion, retrieval, answer generation, and citation output. The Streamlit prototype is separate from the FastAPI API at this stage.
+
+```mermaid
+flowchart TB
+    subgraph INGEST["Document Ingestion"]
+        A["PDF Upload"] --> B["PyMuPDF Text Extraction"]
+        B --> C["Chunking<br/>500 size · 100 overlap"]
+        C --> D["Embedding Generation<br/>BAAI/bge-small-en-v1.5"]
+        D --> E[("FAISS Vector Store")]
+        C --> F[("BM25 Keyword Index")]
+    end
+
+    subgraph QUERY["Question Answering"]
+        Q["User Question"] --> DR["Dense Retrieval"]
+        Q --> BR["BM25 Retrieval"]
+        E --> DR
+        F --> BR
+        DR --> HY["Hybrid Retrieval<br/>0.5 dense · 0.5 BM25"]
+        BR --> HY
+        HY --> RR["Cross-Encoder Reranking<br/>Candidate pool up to 20"]
+        RR --> CTX["Context Construction<br/>Select up to 2 chunks"]
+        Q --> CTX
+        CTX --> LLM["Ollama LLM<br/>gemma3:1b in evaluation"]
+        LLM --> ANS["Generated Answer"]
+        LLM --> SRC["Source-Page Citations"]
+    end
+
+    API["FastAPI<br/>Pydantic · X-API-Key"] -. "serves upload and query endpoints" .-> A
+    API -. "query endpoint" .-> Q
+```
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Language | Python |
+| API framework | FastAPI |
+| Data validation | Pydantic |
+| RAG framework | LangChain |
+| PDF processing | PyMuPDF |
+| Embeddings | `BAAI/bge-small-en-v1.5` |
+| Vector search | FAISS |
+| Lexical retrieval | BM25 |
+| Reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
+| LLM runtime | Ollama |
+| Model used in latest evaluation | `gemma3:1b` |
+| Containerization | Docker, Docker Compose |
+| Deployment | AWS EC2 |
+| Evaluation | Custom Python evaluation script |
+
+## Project Structure
+
+```text
 DocumentAssistant/
-│
-├── ui.py
-├── main.py
-├── rag.py
-├── bm25.py
-├── pdf_utils.py
-├── config.py
+├── app/
+│   ├── __init__.py
+│   ├── api.py
+│   ├── config.py
+│   ├── hybrid_retriever.py
+│   ├── pdf_utils.py
+│   ├── rag_pipeline.py
+│   ├── reranker.py
+│   ├── ui.py
+│   └── vector_store.py
+├── docs/                   # Demo recording and screenshots
+├── evaluation/
+│   ├── evaluate.py
+│   ├── test_cases.json
+│   ├── README.md
+│   └── results/
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── compose.yaml
+├── Dockerfile
 ├── requirements.txt
-├── README.md
-│
-└── data/
-    ├── raw_pdfs/
-    └── faiss_index/
+└── README.md
+```
 
-File
+Runtime data such as uploaded PDFs and generated FAISS indexes is created locally and should not be committed.
 
-Purpose
+## How It Works
 
-ui.py
+### 1. PDF processing
 
-Streamlit interface, PDF upload and chat
+PyMuPDF extracts text from uploaded PDFs. Source-page metadata is retained so retrieved passages can be traced back to their original pages.
 
-main.py
+### 2. Chunking
 
-Application initialization and FAISS index loading/building
+The extracted text is split into overlapping chunks.
 
-rag.py
+- **Chunk size:** 500
+- **Chunk overlap:** 100
 
-RAG pipeline, retrieval, RRF, reranking and LLM generation
+### 3. Embeddings and vector search
 
-bm25.py
+`BAAI/bge-small-en-v1.5` converts chunks into vector representations. FAISS indexes these vectors and retrieves semantically relevant passages for a question.
 
-BM25 lexical retrieval
+### 4. Lexical retrieval
 
-pdf_utils.py
+BM25 retrieves passages based on keyword relevance. This can help when a question contains specific terms, names, or phrases.
 
-PDF extraction and chunking
+### 5. Hybrid retrieval
 
-config.py
+Dense retrieval and BM25 provide complementary retrieval signals. The current configured weights are:
 
-Models, paths and retrieval configuration
+- **Dense retrieval:** 0.5
+- **BM25 retrieval:** 0.5
 
-requirements.txt
+### 6. Reranking
 
-Python dependencies
+The cross-encoder evaluates the question and candidate passages together, then reranks them by relevance. The current pipeline uses a candidate pool of up to 20 chunks and selects up to 2 chunks for final context.
 
-⚙️ Configuration
+### 7. Answer generation
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-LLM_MODEL = "qwen2.5:7b"
+The selected context and user question are passed to the configured language model through Ollama.
 
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 100
+### 8. Source citations
 
-TOP_K = 5
-SIMILARITY_THRESHOLD = 0.30
+The API returns the generated answer alongside source metadata, including available filenames, page numbers, chunk identifiers, and retrieved passage content.
 
-🚀 Installation
+## API Documentation
 
-1. Clone the repository
+When the API is running locally:
 
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+| Method | Endpoint | Purpose | Authentication |
+|---|---|---|---|
+| `GET` | `/health` | Check API health and model configuration | No API key |
+| `POST` | `/upload` | Upload and process a PDF | `X-API-Key` required |
+| `POST` | `/query` | Ask a question about the active PDF | `X-API-Key` required |
+
+### Health check
+
+```bash
+curl http://localhost:8000/health
+```
+
+A healthy response confirms that the API process responds. It does not, by itself, prove that model inference and the full RAG pipeline are working.
+
+### Upload a PDF
+
+```bash
+curl -X POST "http://localhost:8000/upload" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -F "file=@document.pdf"
+```
+
+The response includes a message, filename, document ID, and number of chunks created. The API accepts PDF uploads up to 20 MB.
+
+### Ask a question
+
+```bash
+curl -X POST "http://localhost:8000/query" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Summarize the main ideas in the document."}'
+```
+
+The response includes the question, generated answer, and source objects. For the exact response schema, inspect `/docs` while the API is running.
+
+## Demo
+
+The `docs/` directory contains the project demo recording and screenshots. Add the final filenames or links below once you have checked them for secrets and private information.
+
+Suggested screenshot list:
+
+- API documentation (Swagger UI)
+- API health check
+- Successful PDF upload
+- Question with cited source passages
+
+Do not add image links until the corresponding image files exist at those paths. Before publishing, inspect every screenshot and recording for API keys, credentials, AWS account identifiers, private IPs, or other sensitive information.
+
+## Local Setup
+
+### Prerequisites
+
+- Python 3.12
+- Git
+- Ollama
+- Docker (optional, for the containerized setup)
+
+### 1. Clone the repository
+
+After creating the GitHub repository, replace the URL below with its clone URL:
+
+```bash
 git clone https://github.com/YOUR_USERNAME/DocumentAssistant.git
 cd DocumentAssistant
+```
 
-2. Create a virtual environment
+### 2. Create and activate a virtual environment
 
-Windows:
+**Windows PowerShell:**
 
+```powershell
 python -m venv venv
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
+```
 
-macOS/Linux:
+**macOS/Linux:**
 
+```bash
 python3 -m venv venv
 source venv/bin/activate
+```
 
-3. Install Python dependencies
+### 3. Install dependencies
 
+```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
 
-4. Install Ollama
+### 4. Configure environment variables
 
-Install Ollama separately from:
+Create a local `.env` file using `.env.example` as a reference. Set a strong, private API key:
 
-https://ollama.com/
+```dotenv
+DOCUMENTASSISTANT_API_KEY=replace_with_your_private_key
+```
 
-Then pull the model used by this project:
+Never commit `.env` or publish its contents. The API reads the key from the `DOCUMENTASSISTANT_API_KEY` environment variable.
 
-ollama pull qwen2.5:7b
+### 5. Start Ollama
 
-Make sure Ollama is running before starting the application.
+Pull the default model configured for the local setup:
 
-5. Run the application
+```bash
+ollama pull gemma3:1b
+```
 
-python -m streamlit run ui.py
+Make sure the Ollama service is running. The default local configuration is:
 
-💬 Example Questions
+```dotenv
+LLM_MODEL=gemma3:1b
+OLLAMA_BASE_URL=http://localhost:11434
+```
 
-After uploading a PDF:
+If `.env.example` specifies different values, follow the configuration used by the checked-out code.
 
-What is an LLM?
+### 6. Start the API
 
-Explain the RAG pipeline.
+From the project root:
 
-What is BM25?
+```bash
+uvicorn api:app --app-dir app --host 127.0.0.1 --port 8000
+```
 
-Why is hybrid retrieval useful?
+Open `http://localhost:8000/docs` to explore and test the endpoints.
 
-Compare BM25 and dense retrieval.
+### 7. Run the Streamlit prototype (optional)
 
-Why is reranking required?
+The Streamlit UI currently invokes the RAG pipeline directly rather than calling FastAPI. Run it in a separate terminal after installing dependencies:
 
-What are the limitations discussed in the document?
+```bash
+streamlit run app/ui.py
+```
 
-The quality of the answer depends on the uploaded document and the retrieved context.
+This prototype may require the same local model and environment configuration as the RAG pipeline.
 
-🎯 Why Hybrid Retrieval?
+## Run with Docker
 
-A major design choice in this project is combining semantic and lexical retrieval.
+Build the image:
 
-Dense retrieval
+```bash
+docker build -t documentassistant .
+```
 
-FAISS uses embeddings to find passages that are semantically similar to the query.
+Ensure a local `.env` file exists with the required API key, then start the application:
 
-Lexical retrieval
+```bash
+docker compose up --build -d
+```
 
-BM25 focuses on term-level matching.
+Useful commands:
 
-Combined approach
+```bash
+docker compose ps
+docker compose logs -f documentassistant
+docker compose down
+```
 
-                 User Query
-                     │
-          ┌──────────┴──────────┐
-          ▼                     ▼
-       FAISS                  BM25
-   semantic search        lexical search
-          │                     │
-          └──────────┬──────────┘
-                     ▼
-                    RRF
-                     ▼
-              Cross-Encoder
-                     ▼
-              Best passages
+The Compose configuration uses `host.docker.internal` to connect to Ollama running on the host in supported local Docker environments. The configured Ollama endpoint must be reachable from inside the container. For EC2, ensure the model service and its endpoint are configured for that environment.
 
-This gives the system complementary semantic and lexical retrieval signals.
+## Deployment on AWS EC2
 
-⚡ Performance Considerations
+The Dockerized API has been deployed to AWS EC2 in the `eu-north-1` (Stockholm) region and smoke-tested through its public endpoint.
 
-The generated FAISS index and chunk metadata are stored locally:
+- **Container image:** `prishaaasingh/documentassistant:latest`
+- **Port:** `8000`
+- **Tested workflows:** health check, PDF upload, question answering, and source citations
+- **Secrets:** API keys are supplied through environment variables, not embedded in the image or source code.
 
-data/faiss_index/
-    ├── index.faiss
-    └── chunks.pkl
+The exact instance type and model-serving configuration should be confirmed from the current AWS setup before documenting them. Do not publish instance identifiers, public IP addresses, account IDs, or credentials in this README.
 
-When the cached index exists, it can be loaded instead of regenerating the embeddings.
+For a public deployment, restrict inbound access to the required ports and trusted sources. Stop or terminate resources when they are not needed, and check AWS billing and resource usage regularly.
 
-When a new PDF is uploaded, the Streamlit interface clears the previous PDF/index and rebuilds the knowledge base for the new document.
+## Evaluation
 
-⚠️ Current Limitations
+The project includes a custom evaluation workflow in `evaluation/` with 20 question-answer test cases.
 
-The application is designed around one uploaded PDF at a time.
+Run the evaluation from the project root:
 
-Retrieval quality depends on chunking and embedding quality.
+```bash
+python evaluation/evaluate.py --pdf "data/raw_pdfs/RAG_Testing.pdf"
+```
 
-Local LLM response speed depends on available CPU/GPU/RAM.
+The test PDF is a local evaluation asset and should remain untracked unless you have confirmed that you have permission to publish it.
 
-Scanned/image-only PDFs require OCR support, which is not currently implemented.
+### Results
 
-Complex questions may still produce imperfect retrieval or generation.
+The evaluation was run on October 22, 2026, using 20 question-answer test cases against `RAG_Testing.pdf`. The recorded run used the `gemma3:1b` Ollama model.
 
-The current system is a document QA application rather than a general-purpose chatbot.
+| Metric | Result |
+|---|---:|
+| Test cases | 20 |
+| Successful runs | 20/20 |
+| Failed runs | 0 |
+| Expected-page hit rate | 100% |
+| Mean retrieved-context answer lexical overlap | 60.94% |
+| Mean generated-answer lexical overlap | 35.99% |
+| Mean recorded latency | 10.74 seconds |
 
-🔮 Future Improvements
+### How to interpret these results
 
-Multi-document retrieval
+- **Expected-page hit rate** measures whether at least one manually specified expected page appeared among the returned source pages. It is a retrieval metric, not a measure of answer correctness.
+- **Lexical overlap** measures word overlap against reference answers. It is a diagnostic measure and does not establish semantic correctness or faithfulness.
+- **Mean latency** is the average time recorded per evaluation run in this test environment.
 
-Query rewriting and query expansion
+These results apply to the tested document, questions, model, and environment. The test set is small and custom-authored; the results do not establish general answer accuracy or production-level performance.
 
-Metadata-aware retrieval
+### Limitations observed
 
-Improved chunking strategies
+The current evaluation uses lexical diagnostics rather than a full semantic or faithfulness evaluation. Generated answers should be manually checked against their cited passages. Additional tests should cover reworded questions, multi-page answers, and questions whose answers are absent from the PDF.
 
-OCR for scanned PDFs
+## Security Considerations
 
-Streaming LLM responses
+- API keys are read from environment variables.
+- `.env` should remain excluded from Git.
+- PDFs and generated vector-store data should not be committed unless explicitly approved for publication.
+- Do not expose API keys in logs, screenshots, videos, or public repositories.
+- Restrict public access to API endpoints and use HTTPS and stronger authentication controls for production deployments.
+- Treat uploaded documents as potentially sensitive.
 
-Advanced citation highlighting
+## Limitations
 
-Retrieval evaluation using Precision@k and Recall@k
+- Answer quality depends on document quality, chunking, retrieval, and model behavior.
+- Inference speed depends on available compute resources and model configuration.
+- Scanned PDFs may require OCR if they contain no extractable text.
+- Retrieved context may omit information needed for complex or multi-hop questions.
+- Generated answers may be incomplete or incorrect and should be checked against source passages.
+- A healthy API response does not guarantee successful model inference.
+- The API currently maintains one active document in process memory; uploading another document replaces the active assistant for subsequent queries.
+- The project is a portfolio implementation and needs additional security, reliability, multi-user state management, and evaluation work before production use.
 
-Faithfulness/grounding evaluation
+## Future Improvements
 
-Persistent document collections
+- Connect the Streamlit prototype to the FastAPI endpoints.
+- Add persistent document and query metadata storage.
+- Implement user authentication and authorization.
+- Expand automated retrieval and answer-quality evaluation.
+- Improve document management and multi-document retrieval.
+- Add deployment automation and continuous integration.
+- Improve observability, error handling, and monitoring.
 
-Better multi-hop question handling
+## Author
 
-📌 RAG Concepts Demonstrated
+**Prisha Singh**
+B.Tech, Computer Science and Engineering (Data Science), BPIT
 
-PDF Processing
-      ↓
-Chunking
-      ↓
-Embeddings
-      ↓
-Vector Search
-      ↓
-Lexical Search
-      ↓
-Hybrid Retrieval
-      ↓
-RRF
-      ↓
-Reranking
-      ↓
-Context Construction
-      ↓
-LLM Generation
-      ↓
-Source Attribution
+GitHub: https://github.com/prisha811
 
-👩‍💻 Author
-
-Prisha Singh
-
-B.Tech, Computer Science and Engineering (Data Science)

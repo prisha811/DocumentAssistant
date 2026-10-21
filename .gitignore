@@ -1,36 +1,88 @@
-# Virtual environment
+Python virtual environments
+
 venv/
 .venv/
 env/
 
-# Python
-__pycache__/
+Python cache and compiled files
+
+pycache/
 *.py[cod]
 *$py.class
 
-# Streamlit
-.streamlit/secrets.toml
+Environment files and secrets
 
-# Local data
-data/raw_pdfs/*
-data/faiss_index/*
-*.pdf
-
-# FAISS / generated files
-*.faiss
-*.pkl
-
-# Environment / secrets
 .env
 .env.*
+!.env.example
+!.env.sample
+secrets.*
+secret
+*.pem
+.key
+credentials.json
+service-account.json
 
-# IDE
+Streamlit secrets
+
+.streamlit/secrets.toml
+
+Private documents and uploaded PDFs
+
+*.pdf
+data/raw_pdfs/
+app/data/raw_pdfs/
+docs/private/
+
+FAISS indexes and generated retrieval data
+
+data/faiss_index/
+app/data/faiss_index/
+*.faiss
+*.index
+*.pkl
+*.pickle
+*.joblib
+
+Model weights and downloaded model caches
+
+models/
+model_cache/
+.cache/
+.huggingface/
+
+Logs and temporary files
+
+*.log
+*.tmp
+*.temp
+
+IDE and editor files
+
 .vscode/
 .idea/
+*.swp
 
-# OS
+Operating system files
+
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Logs
-*.log
+Test and coverage artifacts
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+Build artifacts
+
+build/
+dist/
+*.egg-info/
+
+Local databases
+
+*.db
+*.sqlite
+*.sqlite3
